@@ -20,20 +20,194 @@ theme_override_constants/margin_bottom = 8
 
 [node name="HBox" type="HBoxContainer" parent="TopBar/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 16
 
 [node name="TitleLabel" type="Label" parent="TopBar/Margin/HBox"]
 layout_mode = 2
-text = "DAWN OF WORLDS: GENESIS OF DEITIES"
+text = "MEGLIN |"
 
 [node name="EpochLabel" type="Label" parent="TopBar/Margin/HBox"]
 layout_mode = 2
-text = "Age 1: First Dawn"
+text = "1st Age: Age of Land (Round 1/5)"
+
+[node name="YearLabel" type="Label" parent="TopBar/Margin/HBox"]
+layout_mode = 2
+text = "Year 500"
+
+[node name="Spacer" type="Control" parent="TopBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="PowerLabel" type="Label" parent="TopBar/Margin/HBox"]
 layout_mode = 2
-text = "Power: 12 Pts"
+text = "⚡ 12 Pts (2d6: 8)"
 
 [node name="EndTurnButton" type="Button" parent="TopBar/Margin/HBox"]
 layout_mode = 2
-text = "End Turn"
+text = "End Turn > ROUND 1"
+
+[node name="PowersDrawer" type="PanelContainer" parent="."]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -356.0
+offset_top = 64.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="PowersDrawer"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="PowersDrawer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderBox" type="VBoxContainer" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="PowersDrawer/Margin/VBox/HeaderBox"]
+layout_mode = 2
+text = "Divine Powers (First Age of Land)"
+
+[node name="PowerAvailLabel" type="Label" parent="PowersDrawer/Margin/VBox/HeaderBox"]
+layout_mode = 2
+text = "⚡ Available Power: 12 Pts"
+
+[node name="TargetLabel" type="Label" parent="PowersDrawer/Margin/VBox/HeaderBox"]
+layout_mode = 2
+text = "Target: 1 block(s) selected"
+
+[node name="TabsBox" type="HBoxContainer" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+
+[node name="TabLand" type="Button" parent="PowersDrawer/Margin/VBox/TabsBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Land & Sky"
+
+[node name="TabRaces" type="Button" parent="PowersDrawer/Margin/VBox/TabsBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Races"
+
+[node name="TabCities" type="Button" parent="PowersDrawer/Margin/VBox/TabsBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cities"
+
+[node name="TabMiracles" type="Button" parent="PowersDrawer/Margin/VBox/TabsBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Miracles"
+
+[node name="SubtoggleBox" type="HBoxContainer" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+
+[node name="BtnGeologic" type="Button" parent="PowersDrawer/Margin/VBox/SubtoggleBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Geologic Terrain (3 Pts)"
+
+[node name="BtnClimate" type="Button" parent="PowersDrawer/Margin/VBox/SubtoggleBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Climate Currents (2 Pts)"
+
+[node name="ScopeLabel" type="Label" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+text = "Ripple Scope & Physics:"
+
+[node name="ScopeBox" type="HBoxContainer" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+
+[node name="BtnCascade" type="Button" parent="PowersDrawer/Margin/VBox/ScopeBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cascade (4 Rings)"
+
+[node name="BtnRegional" type="Button" parent="PowersDrawer/Margin/VBox/ScopeBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Regional (2 Rings)"
+
+[node name="BtnPinpoint" type="Button" parent="PowersDrawer/Margin/VBox/ScopeBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Pinpoint (1 Cell)"
+
+[node name="TerrainLabel" type="Label" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+text = "Shaping Invocations (3 Power):"
+
+[node name="TerrainGrid" type="GridContainer" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+columns = 2
+
+[node name="BtnVolcanic" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Volcanic Crags"
+
+[node name="BtnMountains" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Raise Mountains"
+
+[node name="BtnHills" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rolling Hills"
+
+[node name="BtnSwamp" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Swamps & Mires"
+
+[node name="BtnForest" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Seed Forests"
+
+[node name="BtnPlains" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Fertile Plains"
+
+[node name="BtnDesert" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Arid Desert"
+
+[node name="BtnTundra" type="Button" parent="PowersDrawer/Margin/VBox/TerrainGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Frozen Tundra"
+
+[node name="SinkingLabel" type="Label" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+text = "Sinking Waters & Basins (2 Stages):"
+
+[node name="SinkingBox" type="HBoxContainer" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+
+[node name="BtnLake" type="Button" parent="PowersDrawer/Margin/VBox/SinkingBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Create Lake (Stage 1)"
+
+[node name="BtnOcean" type="Button" parent="PowersDrawer/Margin/VBox/SinkingBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sink Ocean (Stage 2)"
+
+[node name="ThriftLabel" type="Label" parent="PowersDrawer/Margin/VBox"]
+layout_mode = 2
+text = "⚡ Dawn of Worlds Rules: Thrift carries unspent points (+1 bonus)."
+autowrap_mode = 2
