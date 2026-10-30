@@ -1,16 +1,8 @@
 ; Engine configuration file.
 ; It's best edited using the editor UI and not directly,
-; since the parameters that go here are not all obvious.
-;
-; Format:
-;   [section] ; section goes between []
-;   param=value ; assign values to parameters
+; but it can also be edited by hand.
 
 config_version=5
-
-[animation]
-
-compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
@@ -27,13 +19,19 @@ EventBus="*res://scripts/core/event_bus.gd"
 RulesEngine="*res://scripts/core/rules_engine.gd"
 GameManager="*res://scripts/core/game_manager.gd"
 
-[debug]
-
-gdscript/warnings/unused_signal=0
-
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/resizable=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+textures/canvas_textures/default_texture_filter=1
+
+[debug]
+
+gdscript/warnings/unused_signal=0
