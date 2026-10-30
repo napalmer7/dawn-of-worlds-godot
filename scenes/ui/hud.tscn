@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3 uid="uid://hud_scene_02"]
+
+[ext_resource type="Script" path="res://scripts/ui/main_hud.gd" id="1_hud"]
+
+[node name="HUDLayer" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="TopBar" type="PanelContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 54.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="TopBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="TitleLabel" type="Label" parent="TopBar/Margin/HBox"]
+layout_mode = 2
+text = "DAWN OF WORLDS: GENESIS OF DEITIES"
+
+[node name="EpochLabel" type="Label" parent="TopBar/Margin/HBox"]
+layout_mode = 2
+text = "Age 1: First Dawn"
+
+[node name="PowerLabel" type="Label" parent="TopBar/Margin/HBox"]
+layout_mode = 2
+text = "Power: 12 Pts"
+
+[node name="EndTurnButton" type="Button" parent="TopBar/Margin/HBox"]
+layout_mode = 2
+text = "End Turn"
