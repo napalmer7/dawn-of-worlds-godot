@@ -140,10 +140,12 @@ Disasters impact a **3.8 radial shockwave**:
 
 ---
 
-## 📁 Project Architecture & Directory Layout
+## 📁 Complete Project Architecture (25 Files)
 ```
 res://
 ├── project.godot                     # Engine configuration & Autoload registrations
+├── icon.svg                          # Game icon asset
+├── LICENSE                           # MIT License
 ├── GAME_SPECIFICATION.md             # Complete v2.4 Master Specification Document
 ├── scenes/
 │   ├── main.tscn                     # Master scene linking Camera, WorldMap, and UI
@@ -165,13 +167,20 @@ res://
 │   │   ├── tech_tree.gd              # 5 categories x 5 tiers with combat & wealth modifiers
 │   │   ├── combat_engine.gd          # Battle formula, siege fallout, city ruination
 │   │   ├── catastrophe_system.gd     # 3.8 radial shockwave & civilization extinction
-│   │   └── orders.gd                 # Holy/Arcane orders, settlement binding, realm buffs
+│   │   ├── orders.gd                 # Holy/Arcane orders, settlement binding, realm buffs
+│   │   ├── heraldry.gd               # Dynamic Coat-of-Arms procedural generator
+│   │   ├── geopolitics.gd            # Demographics, trade routes, border expansion
+│   │   ├── miracles.gd               # Custom miracle enchantment engine
+│   │   └── save_manager.gd           # Auto-save & state serialization
 │   ├── ai/
 │   │   └── npc_deity_ai.gd           # Autonomous pantheon AI strategic priority trees
 │   ├── chronicle/
 │   │   └── chronicler.gd             # Multi-age historical event logging & saga formatting
 │   └── ui/
-│       └── main_hud.gd               # HUD event binding and feedback animations
+│       ├── main_hud.gd               # HUD event binding and feedback animations
+│       ├── powers_dock.gd            # Collapsible powers dock UI controller
+│       ├── tech_tree_modal.gd        # Interactive tech tree controller
+│       └── battle_modal.gd           # Battle clash cinematic modal controller
 └── .github/
     └── workflows/
         └── godot-ci.yml              # Headless validation, GDScript linting, export tests
