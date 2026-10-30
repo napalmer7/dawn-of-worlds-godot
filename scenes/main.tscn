@@ -1,0 +1,35 @@
+[gd_scene load_steps=7 format=3 uid="uid://c8r785tq67x1y"]
+
+[ext_resource type="Script" path="res://scripts/simulation/world_grid.gd" id="1_grid"]
+[ext_resource type="Script" path="res://scripts/simulation/combat_engine.gd" id="2_combat"]
+[ext_resource type="Script" path="res://scripts/simulation/tech_tree.gd" id="3_tech"]
+[ext_resource type="Script" path="res://scripts/simulation/catastrophe_system.gd" id="4_cat"]
+[ext_resource type="Script" path="res://scripts/ai/npc_deity_ai.gd" id="5_ai"]
+[ext_resource type="Script" path="res://scripts/chronicle/chronicler.gd" id="6_chron"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="7_hud"]
+
+[node name="Main" type="Node2D"]
+
+[node name="WorldGrid" type="Node2D" parent="."]
+script = ExtResource("1_grid")
+
+[node name="CombatEngine" type="Node" parent="."]
+script = ExtResource("2_combat")
+
+[node name="TechTree" type="Node" parent="."]
+script = ExtResource("3_tech")
+
+[node name="CatastropheSystem" type="Node" parent="."]
+script = ExtResource("4_cat")
+
+[node name="NpcDeityAI" type="Node" parent="."]
+script = ExtResource("5_ai")
+
+[node name="Chronicler" type="Node" parent="."]
+script = ExtResource("6_chron")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+zoom = Vector2(1, 1)
+
+[node name="HUD" parent="." instance=ExtResource("7_hud")]
