@@ -1,0 +1,69 @@
+# ==============================================================================
+# Godot 4.x Comprehensive .gitignore
+# Specially configured for Dawn of Worlds: Genesis of Deities
+# ==============================================================================
+
+# Godot 4.x specific ignores
+.godot/
+.import/
+export_presets.cfg
+
+# Imported translations
+*.translation
+
+# Mono / C# specific (if C# extensions are added)
+.mono/
+[Bb]in/
+[Oo]bj/
+*.csproj
+*.sln
+
+# Crash logs and debug traces
+crash-*.log
+godot-*.log
+godot.log
+
+# Temporary and swap files
+*.tmp
+*~
+*.swp
+*.bak
+
+# Operating System specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# IDE and Editor configurations
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+# Build and export output directories
+/build/
+/dist/
+/exports/
+*.exe
+*.x86_64
+*.arm64
+*.app
+*.apk
+*.aab
+*.ipa
+*.html
+*.wasm
+*.pck
+*.zip
+
+# Local developer overrides and test artifacts
+override.cfg
+local_settings.cfg
+test_reports/
+*.coverage
