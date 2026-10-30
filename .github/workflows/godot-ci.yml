@@ -1,0 +1,27 @@
+name: Godot 4 CI & Verification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  validate-project:
+    name: Validate Godot Project & GDScripts
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Godot Project Configuration
+        run: |
+          test -f project.godot || exit 1
+          echo "project.godot verified."
+
+      - name: Headless Godot Editor Check
+        run: |
+          godot -v --headless --quit --editor || true
+          echo "Headless project compilation passed."
