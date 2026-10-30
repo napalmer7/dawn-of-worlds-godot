@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://battle_modal_05"]
+
+[ext_resource type="Script" path="res://scripts/ui/battle_modal.gd" id="1_battle_ui"]
+
+[node name="BattleModal" type="Window"]
+title = "Battle Clash Resolution"
+size = Vector2i(600, 400)
+visible = false
+script = ExtResource("1_battle_ui")
