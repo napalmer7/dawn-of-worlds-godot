@@ -1,270 +1,344 @@
 extends Node2D
-## Spherical Fibonacci Lattice & Cascading Terrain (res://scripts/simulation/world_grid.gd)
-## Renders the world map, 11 terrain classes, 2-stage ocean sinking, and handles cell interaction.
+## Cartographer's 2D World Atlas (24 Latitudinal Bands x 48 Meridians = 1,152 Blocks)
+## (res://scripts/simulation/world_grid.gd)
+## Renders the world map, 11 terrain classes, 2-stage ocean sinking, and handles multi-block drag selection.
+
+const ROWS: int = 24
+const COLS: int = 48
+const TOTAL_BLOCKS: int = 1152
 
 const TERRAIN_TYPES = {
-	"deep_ocean": { "color": Color(0.06, 0.12, 0.28), "is_water": true },
-	"ocean": { "color": Color(0.12, 0.25, 0.48), "is_water": true },
-	"shallow_water": { "color": Color(0.24, 0.55, 0.72), "is_water": true },
-	"plains": { "color": Color(0.35, 0.75, 0.32), "is_water": false },
-	"forest": { "color": Color(0.12, 0.45, 0.18), "is_water": false },
-	"hills": { "color": Color(0.62, 0.52, 0.30), "is_water": false },
-	"mountains": { "color": Color(0.68, 0.70, 0.74), "is_water": false },
-	"swamp": { "color": Color(0.28, 0.40, 0.22), "is_water": false },
-	"desert": { "color": Color(0.88, 0.76, 0.38), "is_water": false },
-	"tundra": { "color": Color(0.75, 0.88, 0.94), "is_water": false },
-	"volcanic": { "color": Color(0.75, 0.20, 0.18), "is_water": false }
+	"deep_ocean": { "color": Color(0.05, 0.12, 0.20), "name": "Deep Ocean", "is_water": true },
+	"ocean": { "color": Color(0.22, 0.74, 0.97), "name": "Ocean / Shallows", "is_water": true },
+	"shallow_water": { "color": Color(0.22, 0.74, 0.97), "name": "Lake / Shallows", "is_water": true },
+	"plains": { "color": Color(0.29, 0.49, 0.16), "name": "Plains", "is_water": false },
+	"forest": { "color": Color(0.14, 0.36, 0.15), "name": "Forest", "is_water": false },
+	"hills": { "color": Color(0.76, 0.38, 0.10), "name": "Hills", "is_water": false },
+	"mountains": { "color": Color(0.42, 0.45, 0.50), "name": "Mountain", "is_water": false },
+	"swamp": { "color": Color(0.18, 0.34, 0.26), "name": "Swamp", "is_water": false },
+	"desert": { "color": Color(0.92, 0.70, 0.26), "name": "Desert", "is_water": false },
+	"volcanic": { "color": Color(0.50, 0.11, 0.11), "name": "Volcanic", "is_water": false },
+	"tundra": { "color": Color(0.80, 0.84, 0.88), "name": "Frozen Tundra", "is_water": false }
 }
 
-@export var cell_count: int = 250
 var cells: Array[Dictionary] = []
-var selected_cell_index: int = 0
-var hovered_cell_index: int = -1
+var selected_indices: Array[int] = [14 * 48 + 28]
+var hovered_index: int = -1
+var is_mouse_down: bool = false
+var ripple_scope: String = "cascade"
+var show_resources: bool = true
 
-# Map Viewport Bounds (leaves right side for Powers Dock)
-var map_origin: Vector2 = Vector2(24, 64)
-var map_size: Vector2 = Vector2(940, 630)
-var map_center: Vector2 = Vector2(494, 379)
+var atlas_origin: Vector2 = Vector2(24, 80)
+var atlas_size: Vector2 = Vector2(880, 440)
+var block_w: float = 880.0 / 48.0
+var block_h: float = 440.0 / 24.0
 
 func _ready() -> void:
-	generate_fibonacci_lattice()
+	generate_equirectangular_atlas()
 	if EventBus:
 		EventBus.cell_terrain_shaped.connect(func(_idx, _t, _e): queue_redraw())
 		EventBus.catastrophe_unleashed.connect(func(_idx, _t, _c): queue_redraw())
 		EventBus.city_founded.connect(func(_d): queue_redraw())
 	queue_redraw()
-	# Emit initial selection
-	if not cells.is_empty():
-		call_deferred("select_cell", 0)
+	if not selected_indices.is_empty():
+		call_deferred("emit_selection_signal")
 
-func generate_fibonacci_lattice() -> void:
+func generate_equirectangular_atlas() -> void:
 	cells.clear()
-	var phi = (1.0 + sqrt(5.0)) / 2.0 - 1.0
-	for i in range(cell_count):
-		var y = 1.0 - (float(i) / float(cell_count - 1)) * 2.0
-		var radius = sqrt(max(0.0, 1.0 - y * y))
-		var theta = phi * 2.0 * PI * float(i)
-		var x = cos(theta) * radius
-		var z = sin(theta) * radius
+	var idx = 0
+	for r in range(ROWS):
+		var lat = 90.0 - (float(r) / float(ROWS - 1)) * 180.0
+		for c in range(COLS):
+			var lon = -180.0 + (float(c) / float(COLS)) * 360.0
 
-		var lat = asin(y) * (180.0 / PI)
-		var lon = atan2(z, x) * (180.0 / PI)
+			var terrain = "deep_ocean"
+			var elevation = -0.75
 
-		# Screen projection coordinates
-		var screen_x = map_center.x + (lon / 180.0) * (map_size.x * 0.47)
-		var screen_y = map_center.y - (lat / 90.0) * (map_size.y * 0.45)
-		var screen_pos = Vector2(screen_x, screen_y)
+			var in_nw_land = (r >= 9 and r <= 15 and c >= 3 and c <= 11)
+			var in_nw_coast = (r >= 8 and r <= 16 and c >= 2 and c <= 13 and not in_nw_land)
 
-		var elev = sin(x * 2.5) * cos(z * 2.5) + y * 0.2
-		var terrain = "ocean"
-		if elev > 0.4:
-			terrain = "mountains"
-		elif elev > 0.2:
-			terrain = "hills"
-		elif elev > 0.05:
-			terrain = "forest" if randf() > 0.5 else "plains"
-		elif elev > -0.2:
-			terrain = "shallow_water"
-		else:
-			terrain = "deep_ocean"
+			var in_mid_land = (r >= 11 and r <= 14 and c >= 24 and c <= 30)
+			var in_mid_coast = (
+				((r >= 10 and r <= 15 and c >= 22 and c <= 34) or (r >= 8 and r <= 10 and c >= 16 and c <= 25)) and not in_mid_land
+			)
 
-		cells.append({
-			"index": i,
-			"lat": lat,
-			"lon": lon,
-			"pos3d": Vector3(x, y, z),
-			"screen_pos": screen_pos,
-			"elevation": elev,
-			"terrain": terrain,
-			"fertility": clampf(0.5 + elev * 0.3, 0.0, 1.0),
-			"city_id": "",
-			"city_name": "",
-			"civ_id": "",
-			"population": 0,
-			"miracle_aura": ""
-		})
+			var in_se_land = (
+				(r >= 13 and c >= 35 and (r - 13) * 1.5 + (c - 35) >= 0) or
+				(r >= 15 and c >= 28 and (r - 15) * 1.8 + (c - 28) >= 0) or
+				(r >= 18 and c >= 22)
+			)
+			var in_se_coast = (
+				((r >= 12 and c >= 33 and (r - 12) * 1.5 + (c - 33) >= -2) or
+				 (r >= 14 and c >= 26 and (r - 14) * 1.8 + (c - 26) >= -2) or
+				 (r >= 17 and c >= 20)) and not in_se_land
+			)
+
+			var is_polar_south = (r >= 21)
+
+			if in_nw_land:
+				elevation = 0.4
+				if c == 4 or c == 5 or r == 14: terrain = "hills"
+				elif c == 7 or c == 8: terrain = "forest"
+				elif c == 10: terrain = "mountains"
+				else: terrain = "plains"
+			elif in_nw_coast:
+				terrain = "ocean"
+				elevation = -0.05
+			elif in_mid_land:
+				elevation = 0.35
+				if c <= 25: terrain = "hills"
+				elif c == 27 or c == 28: terrain = "forest"
+				else: terrain = "plains"
+			elif in_mid_coast:
+				terrain = "ocean"
+				elevation = -0.05
+			elif in_se_land:
+				elevation = 0.5
+				if is_polar_south:
+					terrain = "tundra"
+					elevation = 0.2
+				elif r <= 15 and c <= 33:
+					terrain = "hills"
+				elif r >= 16 and r <= 18 and c >= 34 and c <= 41:
+					terrain = "mountains"
+				elif r >= 14 and r <= 18 and c >= 26 and c <= 33:
+					terrain = "forest" if (r + c) % 3 == 0 else "plains"
+				elif r >= 18 and r <= 20 and c >= 28 and c <= 38:
+					terrain = "swamp" if (r + c) % 4 == 0 else "forest"
+				else:
+					terrain = "plains" if c % 2 == 0 else "forest"
+			elif in_se_coast:
+				terrain = "ocean"
+				elevation = -0.05
+			else:
+				terrain = "deep_ocean"
+				elevation = -0.75
+
+			var resource_type = ""
+			var seed_hash = sin(float(r) * 37.1 + float(c) * 83.3) * 10000.0
+			var rand_val = seed_hash - floor(seed_hash)
+			var is_dry = not TERRAIN_TYPES[terrain]["is_water"]
+
+			if (is_dry and rand_val > 0.82) or (terrain == "ocean" and rand_val > 0.94):
+				if terrain == "mountains" or terrain == "hills":
+					resource_type = "mithril" if rand_val > 0.92 else "ore_gold"
+				elif terrain == "forest" or terrain == "plains":
+					if rand_val > 0.93: resource_type = "mana_springs"
+					elif rand_val > 0.88: resource_type = "ore_gold"
+					else: resource_type = "river_delta"
+				elif terrain == "tundra":
+					resource_type = "mithril" if rand_val > 0.90 else "ore_gold"
+				elif terrain == "ocean" and rand_val > 0.94:
+					resource_type = "river_delta"
+
+			cells.append({
+				"index": idx,
+				"row": r,
+				"col": c,
+				"lat": lat,
+				"lon": lon,
+				"elevation": elevation,
+				"terrain": terrain,
+				"resource_type": resource_type,
+				"city_id": "",
+				"city_name": "",
+				"population": 0
+			})
+			idx += 1
 
 func _draw() -> void:
-	# 1. Cosmic Ocean Backdrop
-	draw_rect(Rect2(map_origin, map_size), Color(0.04, 0.07, 0.14), true)
-	draw_rect(Rect2(map_origin, map_size), Color(0.22, 0.35, 0.55, 0.6), false, 2.0)
+	var card_rect = Rect2(atlas_origin.x - 8, atlas_origin.y - 28, atlas_size.x + 16, atlas_size.y + 110)
+	draw_rect(card_rect, Color(0.04, 0.06, 0.10), true)
+	draw_rect(card_rect, Color(0.40, 0.25, 0.12, 0.5), false, 1.5)
 
-	# 2. Celestial Coordinate Parallels & Meridians
-	var grid_color = Color(0.2, 0.35, 0.55, 0.2)
-	for lat_line in [-60, -30, 0, 30, 60]:
-		var y_pos = map_center.y - (float(lat_line) / 90.0) * (map_size.y * 0.45)
-		draw_line(Vector2(map_origin.x, y_pos), Vector2(map_origin.x + map_size.x, y_pos), grid_color, 1.0)
-	for lon_line in [-120, -60, 0, 60, 120]:
-		var x_pos = map_center.x + (float(lon_line) / 180.0) * (map_size.x * 0.47)
-		draw_line(Vector2(x_pos, map_origin.y), Vector2(x_pos, map_origin.y + map_size.y), grid_color, 1.0)
+	var font = ThemeDB.fallback_font
+	if font:
+		draw_string(font, Vector2(atlas_origin.x, atlas_origin.y - 12), "CARTOGRAPHER'S TABLE: 2D WORLD ATLAS", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.98, 0.82, 0.35))
+		draw_string(font, Vector2(atlas_origin.x + 320, atlas_origin.y - 12), "Equirectangular (24x48 - 1152 Blocks)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.65, 0.75))
 
-	# 3. Draw All Coordinate Cells
 	for cell in cells:
-		var pos = cell["screen_pos"]
+		var r = cell["row"]
+		var c = cell["col"]
+		var x = atlas_origin.x + float(c) * block_w
+		var y = atlas_origin.y + float(r) * block_h
+		var block_rect = Rect2(x, y, block_w, block_h)
+
 		var terrain_type = cell["terrain"]
 		var color = TERRAIN_TYPES.get(terrain_type, TERRAIN_TYPES["ocean"])["color"]
-		var radius = 13.0
 
-		# Base Cell Tile
-		draw_circle(pos, radius, color)
-		draw_arc(pos, radius, 0, TAU, 16, color.darkened(0.3), 1.2)
+		draw_rect(block_rect, color, true)
+		draw_rect(block_rect, Color(0.02, 0.05, 0.09, 0.5), false, 1.0)
 
-		# Distinct Biome Glyphs
-		match terrain_type:
-			"mountains":
-				# Snowcap peak triangle
-				var pts = PackedVector2Array([pos + Vector2(0, -9), pos + Vector2(-6, 5), pos + Vector2(6, 5)])
-				draw_colored_polygon(pts, Color(0.95, 0.98, 1.0))
-			"volcanic":
-				# Glowing magma center
-				draw_circle(pos, 5.0, Color(1.0, 0.4, 0.1))
-			"forest":
-				# Canopy core
-				draw_circle(pos, 4.0, Color(0.08, 0.28, 0.12))
-			"desert":
-				# Dune core
-				draw_circle(pos, 3.5, Color(1.0, 0.88, 0.4))
-			"tundra":
-				# Glacial ice sheen
-				draw_circle(pos, 4.0, Color(0.9, 0.96, 1.0))
+		if show_resources and cell["resource_type"] != "":
+			var center = Vector2(x + block_w * 0.5, y + block_h * 0.5)
+			match cell["resource_type"]:
+				"mithril":
+					var pts = PackedVector2Array([center + Vector2(0, -4), center + Vector2(4, 0), center + Vector2(0, 4), center + Vector2(-4, 0)])
+					draw_colored_polygon(pts, Color(0.22, 0.74, 0.97))
+				"ore_gold":
+					draw_rect(Rect2(center - Vector2(3, 3), Vector2(6, 6)), Color(0.98, 0.75, 0.14), true)
+				"mana_springs":
+					draw_circle(center, 3.5, Color(0.75, 0.52, 0.98))
+				"river_delta":
+					draw_circle(center, 3.0, Color(0.29, 0.87, 0.50))
 
-		# Settlement Marker
-		if cell.get("city_id", "") != "":
-			draw_rect(Rect2(pos - Vector2(6, 6), Vector2(12, 12)), Color(1.0, 0.85, 0.1), true)
-			draw_rect(Rect2(pos - Vector2(6, 6), Vector2(12, 12)), Color(0.1, 0.1, 0.1), false, 1.5)
-			var font = ThemeDB.fallback_font
-			if font:
-				draw_string(font, pos + Vector2(8, -8), cell.get("city_name", "City"), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 0.95, 0.5))
+		if cell["city_id"] != "":
+			var center = Vector2(x + block_w * 0.5, y + block_h * 0.5)
+			draw_rect(Rect2(center - Vector2(4, 4), Vector2(8, 8)), Color(1.0, 0.9, 0.2), true)
 
-		# Hover Outline
-		if cell["index"] == hovered_cell_index and hovered_cell_index != selected_cell_index:
-			draw_arc(pos, radius + 2.0, 0, TAU, 20, Color(1.0, 1.0, 1.0, 0.6), 1.5)
+		if cell["index"] == hovered_index and not selected_indices.has(cell["index"]):
+			draw_rect(block_rect, Color(1.0, 1.0, 1.0, 0.6), false, 1.5)
 
-		# Selected Cell Reticle
-		if cell["index"] == selected_cell_index:
-			draw_arc(pos, radius + 4.0, 0, TAU, 24, Color(1.0, 0.85, 0.2, 0.95), 2.5)
-			draw_line(pos + Vector2(-radius - 7, 0), pos + Vector2(-radius - 1, 0), Color(1.0, 0.85, 0.2), 2.0)
-			draw_line(pos + Vector2(radius + 1, 0), pos + Vector2(radius + 7, 0), Color(1.0, 0.85, 0.2), 2.0)
-			draw_line(pos + Vector2(0, -radius - 7), pos + Vector2(0, -radius - 1), Color(1.0, 0.85, 0.2), 2.0)
-			draw_line(pos + Vector2(0, radius + 1), pos + Vector2(0, radius + 7), Color(1.0, 0.85, 0.2), 2.0)
+		if selected_indices.has(cell["index"]):
+			draw_rect(block_rect, Color(1.0, 0.85, 0.2), false, 2.0)
+
+	var status_y = atlas_origin.y + atlas_size.y + 16
+	draw_rect(Rect2(atlas_origin.x, status_y, atlas_size.x, 26), Color(0.06, 0.09, 0.15), true)
+	draw_rect(Rect2(atlas_origin.x, status_y, atlas_size.x, 26), Color(0.18, 0.24, 0.36), false, 1.0)
+
+	if font:
+		var status_text = ""
+		if selected_indices.size() > 1:
+			status_text = "Target: " + str(selected_indices.size()) + " blocks selected. Ready for divine cascade."
+		elif not selected_indices.is_empty():
+			var s_cell = cells[selected_indices[0]]
+			status_text = "Survey: Block #" + str(s_cell["index"]) + " (R" + str(s_cell["row"]) + ", C" + str(s_cell["col"]) + ") • " + TERRAIN_TYPES[s_cell["terrain"]]["name"] + " • Elev: " + str(snappedf(s_cell["elevation"], 0.01))
+			if s_cell["resource_type"] != "":
+				status_text += " • Resource: " + s_cell["resource_type"].capitalize()
+		draw_string(font, Vector2(atlas_origin.x + 12, status_y + 18), status_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.9, 0.85, 0.7))
+
+	var leg_y = status_y + 38
+	if font:
+		draw_string(font, Vector2(atlas_origin.x, leg_y), "Lake/Shallows [Cyan]  Ocean [Navy]  Plains [Green]  Forest [DarkGreen]  Mountain [Grey]  Hills [Orange]  Desert [Gold]", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.65, 0.7, 0.8))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var mouse_pos = event.position
-		var closest = find_closest_cell(mouse_pos, 18.0)
-		if closest != hovered_cell_index:
-			hovered_cell_index = closest
+		var idx = get_cell_index_at_pos(mouse_pos)
+		if idx != hovered_index:
+			hovered_index = idx
+			if is_mouse_down and idx != -1 and not selected_indices.has(idx):
+				selected_indices.append(idx)
+				emit_selection_signal()
 			queue_redraw()
 
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var mouse_pos = event.position
-		var clicked = find_closest_cell(mouse_pos, 22.0)
-		if clicked != -1:
-			select_cell(clicked)
-
-func find_closest_cell(target_pos: Vector2, max_radius: float) -> int:
-	var closest_idx = -1
-	var min_dist = max_radius
-	for cell in cells:
-		var dist = cell["screen_pos"].distance_to(target_pos)
-		if dist < min_dist:
-			min_dist = dist
-			closest_idx = cell["index"]
-	return closest_idx
-
-func select_cell(cell_idx: int) -> void:
-	if cell_idx < 0 or cell_idx >= cells.size():
-		return
-	selected_cell_index = cell_idx
-	queue_redraw()
-	if EventBus:
-		EventBus.cell_selected.emit(cell_idx, cells[cell_idx])
-
-func get_cell_distance(cell_a: Dictionary, cell_b: Dictionary) -> float:
-	var p1: Vector3 = cell_a["pos3d"]
-	var p2: Vector3 = cell_b["pos3d"]
-	var dot_val = clampf(p1.dot(p2), -1.0, 1.0)
-	var angle = acos(dot_val)
-	return angle * (sqrt(float(cell_count)) / PI)
-
-func get_cells_in_radius(center_index: int, max_radius: float) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if center_index < 0 or center_index >= cells.size():
-		return result
-	var center = cells[center_index]
-	for c in cells:
-		var dist = get_cell_distance(center, c)
-		if dist <= max_radius:
-			result.append(c)
-	return result
-
-func shape_terrain_cascade(center_index: int, target_terrain: String, scope: String) -> void:
-	if center_index < 0 or center_index >= cells.size():
-		return
-	var center = cells[center_index]
-
-	# Always shape the center cell directly
-	if target_terrain == "sink_ocean":
-		apply_sink_ocean(center, 0.0)
-	else:
-		apply_terrain_to_cell(center, target_terrain)
-	EventBus.cell_terrain_shaped.emit(center["index"], center["terrain"], center["elevation"])
-
-	if scope == "pinpoint":
-		queue_redraw()
-		return
-
-	var radius = 2.0 if scope == "regional" else 3.8
-	var affected = get_cells_in_radius(center_index, radius)
-
-	for c in affected:
-		if c["index"] == center["index"]:
-			continue
-		var dist = get_cell_distance(center, c)
-		if target_terrain == "sink_ocean":
-			apply_sink_ocean(c, dist)
-		elif target_terrain == "desert":
-			apply_desert_cascade(c, dist)
-		elif target_terrain == "tundra":
-			apply_tundra_cascade(c, dist)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			var mouse_pos = event.position
+			var idx = get_cell_index_at_pos(mouse_pos)
+			if idx != -1:
+				is_mouse_down = true
+				if event.shift_pressed:
+					if selected_indices.has(idx):
+						selected_indices.erase(idx)
+					else:
+						selected_indices.append(idx)
+				else:
+					selected_indices = [idx]
+				emit_selection_signal()
+				queue_redraw()
 		else:
-			if dist < 1.2:
-				apply_terrain_to_cell(c, target_terrain)
-			elif dist < 2.2 and randf() > 0.3:
-				apply_terrain_to_cell(c, target_terrain)
-		EventBus.cell_terrain_shaped.emit(c["index"], c["terrain"], c["elevation"])
+			is_mouse_down = false
+
+func get_cell_index_at_pos(pos: Vector2) -> int:
+	if pos.x < atlas_origin.x or pos.x >= atlas_origin.x + atlas_size.x:
+		return -1
+	if pos.y < atlas_origin.y or pos.y >= atlas_origin.y + atlas_size.y:
+		return -1
+	var c = int((pos.x - atlas_origin.x) / block_w)
+	var r = int((pos.y - atlas_origin.y) / block_h)
+	c = clampi(c, 0, COLS - 1)
+	r = clampi(r, 0, ROWS - 1)
+	return r * COLS + c
+
+func emit_selection_signal() -> void:
+	if selected_indices.is_empty():
+		return
+	var first_cell = cells[selected_indices[0]]
+	if EventBus:
+		EventBus.cell_selected.emit(selected_indices[0], first_cell)
+
+func compute_distance(c1: Dictionary, c2: Dictionary) -> float:
+	var dy = abs(float(c1["row"] - c2["row"]))
+	var raw_dx = abs(float(c1["col"] - c2["col"]))
+	var dx = minf(raw_dx, float(COLS) - raw_dx)
+	return sqrt(dx * dx + dy * dy)
+
+func invoke_divine_power(target_terrain: String, _cost: int) -> bool:
+	if selected_indices.is_empty():
+		return false
+	if not GameManager.spend_power("player_deity", "shape_land"):
+		return false
+
+	for idx in selected_indices:
+		var center = cells[idx]
+		if target_terrain == "sink_ocean":
+			center["elevation"] = -0.85
+			center["terrain"] = "deep_ocean"
+		elif target_terrain == "shallow_water":
+			center["elevation"] = -0.05
+			center["terrain"] = "ocean"
+		else:
+			apply_terrain_to_cell(center, target_terrain)
+		EventBus.cell_terrain_shaped.emit(center["index"], center["terrain"], center["elevation"])
+
+	if ripple_scope != "pinpoint":
+		var max_radius = 2.2 if ripple_scope == "regional" else 4.2
+		for cell in cells:
+			if selected_indices.has(cell["index"]):
+				continue
+			var min_dist = 999.0
+			for idx in selected_indices:
+				var center = cells[idx]
+				var d = compute_distance(center, cell)
+				if d < min_dist:
+					min_dist = d
+
+			if min_dist <= max_radius:
+				if target_terrain == "sink_ocean":
+					if min_dist <= 1.5:
+						cell["elevation"] = -0.65
+						cell["terrain"] = "deep_ocean"
+					elif min_dist <= 2.8:
+						cell["elevation"] = -0.05
+						cell["terrain"] = "ocean"
+				elif target_terrain == "shallow_water":
+					if min_dist <= 1.5:
+						cell["elevation"] = -0.05
+						cell["terrain"] = "ocean"
+				elif target_terrain == "desert":
+					if min_dist <= 1.8:
+						apply_terrain_to_cell(cell, "desert")
+					elif min_dist <= 3.2 and cell["terrain"] == "forest":
+						cell["terrain"] = "plains"
+				elif target_terrain == "tundra":
+					if cell["terrain"] != "mountains" and cell["terrain"] != "hills":
+						apply_terrain_to_cell(cell, "tundra")
+				elif target_terrain == "volcanic":
+					if min_dist <= 1.5:
+						apply_terrain_to_cell(cell, "mountains")
+					elif min_dist <= 2.8:
+						apply_terrain_to_cell(cell, "hills")
+				elif target_terrain == "mountains":
+					if min_dist <= 1.6:
+						apply_terrain_to_cell(cell, "hills")
+				else:
+					if min_dist <= 1.4:
+						apply_terrain_to_cell(cell, target_terrain)
+					elif min_dist <= 2.6 and randf() > 0.4:
+						apply_terrain_to_cell(cell, target_terrain)
+				EventBus.cell_terrain_shaped.emit(cell["index"], cell["terrain"], cell["elevation"])
+
 	queue_redraw()
-
-func apply_sink_ocean(cell: Dictionary, dist: float) -> void:
-	if dist < 1.0:
-		cell["elevation"] = -0.85
-		cell["terrain"] = "deep_ocean"
-	elif dist < 2.2:
-		cell["elevation"] = -0.45
-		cell["terrain"] = "ocean"
-	else:
-		cell["elevation"] = maxf(-0.15, cell["elevation"] - 0.28)
-		if cell["elevation"] <= 0.0:
-			cell["terrain"] = "shallow_water"
-
-func apply_desert_cascade(cell: Dictionary, dist: float) -> void:
-	if dist < 1.5:
-		apply_terrain_to_cell(cell, "desert")
-	elif dist < 2.8:
-		if cell["terrain"] == "forest":
-			cell["terrain"] = "plains"
-
-func apply_tundra_cascade(cell: Dictionary, dist: float) -> void:
-	if cell["terrain"] != "mountains" and cell["terrain"] != "hills":
-		apply_terrain_to_cell(cell, "tundra")
+	return true
 
 func apply_terrain_to_cell(cell: Dictionary, terrain_name: String) -> void:
 	cell["terrain"] = terrain_name
 	match terrain_name:
 		"mountains": cell["elevation"] = maxf(cell["elevation"], 0.75)
 		"hills": cell["elevation"] = clampf(cell["elevation"], 0.35, 0.65)
-		"plains", "forest", "swamp": cell["elevation"] = clampf(cell["elevation"], 0.1, 0.4)
-		"volcanic": cell["elevation"] = maxf(cell["elevation"], 0.6)
+		"plains", "forest", "swamp", "desert": cell["elevation"] = clampf(cell["elevation"], 0.1, 0.4)
+		"volcanic": cell["elevation"] = maxf(cell["elevation"], 0.65)
+		"tundra": cell["elevation"] = maxf(0.1, cell["elevation"])
 		"deep_ocean": cell["elevation"] = -0.75
-		"ocean": cell["elevation"] = -0.35
-		"shallow_water": cell["elevation"] = -0.05
+		"ocean", "shallow_water": cell["elevation"] = -0.05
