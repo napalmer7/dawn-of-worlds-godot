@@ -27,6 +27,9 @@ extends CanvasLayer
 @onready var btn_ocean = $PowersDrawer/Margin/VBox/SinkingBox/BtnOcean
 
 var world_grid: Node2D = null
+var session_message: Label
+var save_button: Button
+var menu_button: Button
 
 func _ready() -> void:
 	world_grid = get_tree().root.find_child("WorldGrid", true, false)
@@ -34,6 +37,24 @@ func _ready() -> void:
 	EventBus.round_started.connect(_on_round_started)
 	EventBus.deity_power_changed.connect(_on_power_changed)
 	EventBus.cell_selected.connect(_on_cell_selected)
+	EventBus.deity_turn_started.connect(func(_id): refresh_state())
+	SessionController.status_changed.connect(_show_session_message)
+	var controls = HBoxContainer.new()
+	controls.position = Vector2(24, 620)
+	controls.add_theme_constant_override("separation", 12)
+	add_child(controls)
+	save_button = Button.new()
+	save_button.text = "Save World"
+	save_button.pressed.connect(func(): SessionController.save_current_game())
+	controls.add_child(save_button)
+	menu_button = Button.new()
+	menu_button.text = "Save & Return to Menu"
+	menu_button.pressed.connect(func(): SessionController.return_to_menu())
+	controls.add_child(menu_button)
+	session_message = Label.new()
+	session_message.custom_minimum_size = Vector2(460, 44)
+	session_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(session_message)
 
 	if end_turn_btn:
 		end_turn_btn.pressed.connect(_on_end_turn_pressed)
@@ -56,6 +77,23 @@ func _ready() -> void:
 	# Wire 2 Sinking Actions
 	if btn_lake: btn_lake.pressed.connect(func(): invoke_terrain("shallow_water", 3))
 	if btn_ocean: btn_ocean.pressed.connect(func(): invoke_terrain("sink_ocean", 3))
+	refresh_state()
+
+func refresh_state() -> void:
+	_on_round_started(GameManager.current_round, GameManager.current_age, GameManager.current_year)
+	var player = GameManager.get_deity_by_id("player_deity")
+	if not player.is_empty(): _on_power_changed("player_deity", player["power"], 0)
+	_on_cell_selected(-1, {})
+	var can_act = GameManager.is_deity_turn("player_deity")
+	end_turn_btn.disabled = not can_act
+	if save_button: save_button.disabled = not can_act
+	if menu_button: menu_button.disabled = not can_act
+	for button in [btn_volcanic, btn_mountains, btn_hills, btn_swamp, btn_forest, btn_plains, btn_desert, btn_tundra, btn_lake, btn_ocean]:
+		button.disabled = not can_act
+
+func _show_session_message(message: String) -> void:
+	session_message.text = message
+	session_message.modulate = Color("ffb7a3") if not SessionController.last_error.is_empty() else Color("b3cfb0")
 
 func set_scope(scope: String) -> void:
 	if world_grid:
