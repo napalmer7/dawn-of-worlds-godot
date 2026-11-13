@@ -9,7 +9,7 @@ config_version=5
 config/name="Dawn of Worlds: Genesis of Deities"
 config/description="Faithful single-player god-game simulation inspired by John Bobek's 2005 tabletop classic Dawn of Worlds. Built for Godot 4.3+."
 config/version="1.0.0"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/start_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -18,6 +18,8 @@ config/icon="res://icon.svg"
 EventBus="*res://scripts/core/event_bus.gd"
 RulesEngine="*res://scripts/core/rules_engine.gd"
 GameManager="*res://scripts/core/game_manager.gd"
+SaveManager="*res://scripts/simulation/save_manager.gd"
+SessionController="*res://scripts/core/session_controller.gd"
 
 [display]
 

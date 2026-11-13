@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://c8r785tq67x1y"]
+[gd_scene load_steps=9 format=3 uid="uid://c8r785tq67x1y"]
 
 [ext_resource type="Script" path="res://scripts/simulation/world_grid.gd" id="1_grid"]
 [ext_resource type="Script" path="res://scripts/simulation/combat_engine.gd" id="2_combat"]
@@ -7,8 +7,10 @@
 [ext_resource type="Script" path="res://scripts/ai/npc_deity_ai.gd" id="5_ai"]
 [ext_resource type="Script" path="res://scripts/chronicle/chronicler.gd" id="6_chron"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/core/gameplay.gd" id="8_game"]
 
 [node name="Main" type="Node2D"]
+script = ExtResource("8_game")
 
 [node name="WorldGrid" type="Node2D" parent="."]
 script = ExtResource("1_grid")

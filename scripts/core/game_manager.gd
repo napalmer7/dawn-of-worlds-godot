@@ -21,6 +21,23 @@ var is_game_active: bool = false
 func _ready() -> void:
 	initialize_default_pantheon()
 
+func reset_game() -> void:
+	current_age = 1
+	current_round = 1
+	age_round = 1
+	current_year = 500
+	turn_order.clear()
+	active_deity_index = 0
+	initialize_default_pantheon()
+	# Opening power is rolled once, just like every subsequent round.
+	for deity in deities:
+		deity["power"] = 0
+	is_game_active = true
+	start_round()
+
+func is_deity_turn(deity_id: String) -> bool:
+	return is_game_active and active_deity_index >= 0 and active_deity_index < turn_order.size() and turn_order[active_deity_index] == deity_id
+
 func initialize_default_pantheon() -> void:
 	deities = [
 		{
@@ -103,6 +120,8 @@ func initialize_default_pantheon() -> void:
 	]
 
 func start_round() -> void:
+	if not is_game_active:
+		return
 	var initiative_rolls: Array[Dictionary] = []
 	for deity in deities:
 		var gain = RulesEngine.calculate_power_gain(deity["thrift"])
@@ -121,6 +140,8 @@ func start_round() -> void:
 	start_next_turn()
 
 func start_next_turn() -> void:
+	if not is_game_active:
+		return
 	if active_deity_index >= turn_order.size():
 		conclude_round()
 		return
@@ -137,6 +158,8 @@ func start_next_turn() -> void:
 			end_turn(deity["id"])
 
 func end_turn(deity_id: String) -> void:
+	if not is_deity_turn(deity_id):
+		return
 	var deity = get_deity_by_id(deity_id)
 	if deity:
 		deity["thrift"] = RulesEngine.calculate_new_thrift(deity["power"], deity["thrift"])
@@ -167,6 +190,10 @@ func advance_epoch(new_age: int) -> void:
 	start_round()
 
 func spend_power(deity_id: String, action_key: String) -> bool:
+	if not is_deity_turn(deity_id) or not RulesEngine.TABLE_OF_POWERS.has(action_key):
+		return false
+	if current_age < RulesEngine.TABLE_OF_POWERS[action_key]["min_age"]:
+		return false
 	var deity = get_deity_by_id(deity_id)
 	if not deity:
 		return false

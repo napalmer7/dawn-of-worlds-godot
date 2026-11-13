@@ -203,7 +203,27 @@ res://
 3. In the Project Manager, click **Import**.
 4. Browse to the cloned directory and select the `project.godot` file.
 5. Click **Import & Edit**.
-6. Press **F5** (or click the Play icon in the top right) to run `res://scenes/main.tscn`.
+6. Press **F5** (or click the Play icon in the top right) to open the start menu.
+
+### Start Menu & Saved Worlds
+
+- **New Game** creates an independent saved world with the default map and pantheon, beginning in round 1.
+- **Load Game** lists worlds with their age, round, year, and last-played time.
+- **Continue** resumes the most recently played usable save. It is disabled before the first save exists.
+- **Settings** is reserved for a future update.
+- In the game, use **Save World** or **Save & Return to Menu**. The game also saves at the start of each player turn and when closing the game window normally. A failed save keeps the world open and displays an error.
+
+Saves live in Godot's `user://saves/` folder as versioned JSON records, one per world, with a previous-file backup. On Windows, the default location is `%APPDATA%/Godot/app_userdata/Dawn of Worlds: Genesis of Deities/saves/`. These are Godot saves; importing the TypeScript version's saves is not supported yet.
+
+### Session Regression Checks
+
+From the project folder on Windows:
+
+```powershell
+.\tests\run_tests.ps1 -GodotExecutable 'C:\Users\napal\Downloads\Godot_v4.7.2\Godot_v4.7.2-stable_win64_console.exe'
+```
+
+The runner isolates save data under the ignored `.godot/` folder and fails on script errors as well as failed assertions. Checks cover round-1 startup, empty menus, independent worlds, state restoration, last-played Continue, corrupt/incompatible saves, failed writes, and keyboard scrolling.
 
 ---
 
